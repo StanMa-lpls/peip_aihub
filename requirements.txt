@@ -1,0 +1,5 @@
+fastapi>=0.115
+openai>=1.0
+PyYAML>=6.0
+uvicorn[standard]>=0.30
+./wheels/apc_engine-0.1.0-py3-none-any.whl

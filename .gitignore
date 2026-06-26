@@ -1,0 +1,7 @@
+configs/.env
+__pycache__/
+.pytest_cache/
+algorithms/APC_Test/src/apc_engine.egg-info/
+algorithms/APC_Test/dist/
+algorithms/APC_Test/build/
+wheels/

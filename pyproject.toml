@@ -1,0 +1,15 @@
+[tool.peip-aihub]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "openai>=1.0",
+    "PyYAML>=6.0",
+    "uvicorn[standard]>=0.30",
+]
+dev-dependencies = [
+    "pytest>=7.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

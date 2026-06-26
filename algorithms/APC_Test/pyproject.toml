@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apc-engine"
+version = "0.1.0"
+description = "APC test wheel with metadata-aware algorithm wrapper and pseudo controller"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+]
+
+[project.entry-points."peip.algorithms"]
+apc_engine = "apc_engine.factory:create_algorithm"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["apc_engine*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

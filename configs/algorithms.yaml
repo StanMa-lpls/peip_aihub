@@ -1,0 +1,10 @@
+algorithms:
+  apc.r2r_controller:
+    package: apc-engine
+    class_path: apc_engine.create_algorithm
+    metadata:
+      algorithm_id: apc.r2r_controller
+      api_path: /apc/adjust
+    call:
+      mode: method
+      method: adjust
