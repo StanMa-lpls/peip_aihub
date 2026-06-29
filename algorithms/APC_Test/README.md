@@ -19,11 +19,11 @@
 
 `peip_aihub` 负责：
 
-- 注册算法。
-- 加载 wheel。
-- 合并 metadata。
-- 根据 `api_path + call` 决定是否开放 HTTP API。
-- 在 workflow 中按 `capabilities` 调用算法能力。
+- 注册算法包
+- 加载 wheel
+- 合并 metadata
+- 根据 `api_path + call` 决定是否开放 HTTP API
+- 在 workflow 中按 `capabilities` 调用算法能力
 
 ## 能力边界
 
@@ -39,11 +39,8 @@ control
 
 ```text
 peip config -> apc_engine.create_algorithm(config)
-        -> APCAlgorithm.adjust(payload)
-        -> APCInput.from_payload(payload)
         -> APCEngineController.adjust(APCInput)
         -> APCResult
-        -> APCAlgorithm.to_response(APCResult)
 ```
 
 如果 workflow 需要更细粒度编排，也可以分别调用：
@@ -51,6 +48,8 @@ peip config -> apc_engine.create_algorithm(config)
 ```text
 APCAlgorithm.process_data(payload) -> features
 APCAlgorithm.control(features) -> APCResult
+
+"adjust" is a pipeline based "process_data" + "control"
 ```
 
 ## Metadata
@@ -68,7 +67,6 @@ APCAlgorithm.control(features) -> APCResult
 - `capabilities`
 - `input_model`
 - `output_model`
-- `result_model`
 - `tags`
 
 示例：
@@ -85,7 +83,7 @@ metadata = get_algorithm_metadata({
 
 `APCInput` 和 `APCResult` 是算法包自己的领域模型，`peip_aihub` 不应重复定义。
 
-`APCInput` 使用 Pydantic `BaseModel`，字段中包含 `description` 和 `examples`，可被 FastAPI/OpenAPI 直接展示。
+`APCInput` 使用 Pydantic `BaseModel`，字段中包含 `description` 和 `examples`，可供 FastAPI/OpenAPI 直接展示。
 
 关键字段：
 
@@ -97,7 +95,7 @@ metadata = get_algorithm_metadata({
 - `adjust_max_limit`
 - `process`
 
-其中 `process` 表示本次 APC 请求的工艺类型，例如 `RB` 或 `LP`。
+其中 `process` 表示本次 APC 请求的工艺类型，例如 `RB` 和 `LP`。
 
 ## peip_aihub 配置示例
 
@@ -133,7 +131,7 @@ algorithms:
       algorithm_id: apc.r2r_controller
 ```
 
-这种情况下算法仍会注册到 `AlgorithmRegistry`，workflow 可以按 metadata 中的 `capabilities` 调用 `adjust`、`process_data` 或 `control`。
+这种情况下算法仍会注册到 `AlgorithmRegistry`，workflow 可以通过 metadata 中的 `capabilities` 调用 `adjust`、`process_data` 和 `control`。
 
 ## 直接调用 Demo
 
@@ -176,7 +174,7 @@ response = algorithm.to_response(result)
 
 ## Workflow 调用 Demo
 
-不通过 HTTP API 时，可以由 workflow 获取算法实例并按 capability 调用：
+不通过 HTTP API 时，可以在 workflow 获取算法实例并按 capability 调用：
 
 ```python
 from app.algorithms.handle import to_jsonable

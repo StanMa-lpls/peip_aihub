@@ -71,6 +71,9 @@ class AlgorithmRegistry:
     def invoke(self, algorithm_id: str, payload: Any) -> Any:
         return self.require(algorithm_id).invoke(payload)
 
+    def invoke_capability(self, algorithm_id: str, capability: str, payload: Any) -> Any:
+        return self.require(algorithm_id).invoke_capability(capability, payload)
+
 
 def _normalize_algorithm_id(value: str) -> str:
     return value.strip() if isinstance(value, str) else ""

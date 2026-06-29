@@ -28,7 +28,7 @@ def parse_input(spec: AlgorithmSpec, payload: Any) -> Any:
 def normalize_output(spec: AlgorithmSpec, result: Any) -> Any:
     """Normalize an algorithm result through the configured output model."""
 
-    model_path = _metadata_text(spec, "output_model") or _metadata_text(spec, "result_model")
+    model_path = _metadata_text(spec, "output_model")
     if not model_path:
         return result
     model = import_object(model_path)
@@ -48,9 +48,7 @@ def describe_io_models(spec: AlgorithmSpec) -> dict[str, Any]:
     return {
         "algorithm_id": spec.algorithm_id,
         "input": describe_model(_metadata_text(spec, "input_model")),
-        "output": describe_model(
-            _metadata_text(spec, "output_model") or _metadata_text(spec, "result_model")
-        ),
+        "output": describe_model(_metadata_text(spec, "output_model")),
     }
 
 

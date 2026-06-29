@@ -33,10 +33,7 @@ def create_algorithm_api_router(registry: AlgorithmRegistry | None = None) -> AP
         if not route_path:
             continue
         input_model_path = _metadata_text(spec.metadata, "input_model")
-        output_model_path = (
-            _metadata_text(spec.metadata, "output_model")
-            or _metadata_text(spec.metadata, "result_model")
-        )
+        output_model_path = _metadata_text(spec.metadata, "output_model")
         if not input_model_path:
             continue
         try:

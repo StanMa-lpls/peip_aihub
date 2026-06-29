@@ -273,7 +273,7 @@ metadata = algorithm.metadata.to_dict()
 其中：
 
 - `create_algorithm(config)` 由 wheel 通过 entry point 暴露。
-- `metadata` 提供 `algorithm_id`、`family`、`version`、`process`、`input_model`、`result_model`、`capabilities` 等信息。
+- `metadata` 提供 `algorithm_id`、`family`、`version`、`process`、`input_model`、`output_model`、`capabilities` 等信息。
 - peip 负责读取自己的配置，按 `algorithm_id` 注册并调用算法。
 - 算法 wheel 负责输入解析、算法执行和结果模型。
 

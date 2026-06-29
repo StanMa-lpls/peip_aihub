@@ -65,7 +65,7 @@ class APCAlgorithmMetadata:
             ),
             capabilities=tuple(str(item) for item in payload.get("capabilities", ("adjust", "process_data", "control"))),
             input_model=str(payload.get("input_model", "apc_engine.APCInput")),
-            output_model=str(payload.get("output_model") or payload.get("result_model", "apc_engine.APCResult")),
+            output_model=str(payload.get("output_model", "apc_engine.APCResult")),
             tags=tuple(str(item) for item in payload.get("tags", ("apc", "r2r"))),
         )
 
@@ -80,7 +80,6 @@ class APCAlgorithmMetadata:
             "capabilities": list(self.capabilities),
             "input_model": self.input_model,
             "output_model": self.output_model,
-            "result_model": self.output_model,
             "tags": list(self.tags),
         }
 

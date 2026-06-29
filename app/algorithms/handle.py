@@ -37,6 +37,30 @@ class AlgorithmHandle:
         normalized_output = normalize_output(self.spec, result)
         return to_jsonable(normalized_output)
 
+    def invoke_capability(self, capability: str, payload: Any) -> Any:
+        """Invoke one declared capability and return JSON-friendly data.
+
+        This bypasses configured ``call`` defaults on :meth:`invoke`, but still
+        uses the same instance and metadata attached to this handle.
+        """
+
+        capability_name = capability.strip()
+        if not capability_name:
+            raise AlgorithmInvocationError(
+                f"{self.algorithm_id} capability must be a non-empty string"
+            )
+
+        declared = _declared_capabilities(self.spec.metadata.get("capabilities"))
+        if capability_name not in declared:
+            supported = ", ".join(sorted(declared)) or "(none)"
+            raise AlgorithmInvocationError(
+                f"{self.algorithm_id} does not support capability {capability_name!r}; "
+                f"supported: {supported}"
+            )
+
+        result = _call_method(self.instance, capability_name, payload)
+        return to_jsonable(result)
+
 
 class CallAdapter:
     """Apply a configured call strategy to an algorithm instance."""
@@ -65,6 +89,12 @@ class CallAdapter:
         if not callable(factory):
             raise AlgorithmInvocationError(f"input_factory {self._spec.input_factory!r} is not callable")
         return factory(payload)
+
+
+def _declared_capabilities(value: Any) -> set[str]:
+    if not isinstance(value, list | tuple):
+        return set()
+    return {str(item).strip() for item in value if str(item).strip()}
 
 
 def _call_method(instance: Any, method_name: str, argument: Any) -> Any:

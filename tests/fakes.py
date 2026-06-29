@@ -59,14 +59,28 @@ class FakeAPCController:
             "family": "apc",
             "description": "Fake APC metadata",
             "when_to_use": "用于测试算法 metadata 展示。",
-            "capabilities": ["adjust"],
+            "capabilities": ["adjust", "process_data", "control"],
             "input_model": "tests.fakes.FakeAPCInput",
             "output_model": "tests.fakes.FakeAPCResult",
             "tags": ["apc", "fake"],
         }
 
-    def adjust(self, payload: FakeAPCInput) -> FakeAPCResult:
+    def adjust(self, payload: FakeAPCInput | dict[str, Any]) -> FakeAPCResult:
+        if not isinstance(payload, FakeAPCInput):
+            payload = FakeAPCInput.from_dict(payload)
         return FakeAPCResult(adjustments={payload.process.lower(): [1.0, 0.0]})
+
+    def process_data(self, payload: FakeAPCInput | dict[str, Any]) -> dict[str, Any]:
+        if isinstance(payload, FakeAPCInput):
+            return {"machine_id": payload.machine_id, "process": payload.process}
+        return {
+            "machine_id": str(payload.get("machine_id", "")),
+            "process": str(payload.get("process", "RB")).upper(),
+        }
+
+    def control(self, data: dict[str, Any]) -> FakeAPCResult:
+        process = str(data.get("process", "RB")).lower()
+        return FakeAPCResult(adjustments={process: [2.0, 0.0]})
 
 
 class FakeTypedAPCController:
