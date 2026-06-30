@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oee-engine"
+version = "0.1.0"
+description = "OEE_Test aggregate sensor-analysis wheel for pressure and temperature pseudo detection"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+]
+
+[project.entry-points."peip.algorithms"]
+oee_engine = "oee_engine.factory:create_algorithm"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["oee_engine*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

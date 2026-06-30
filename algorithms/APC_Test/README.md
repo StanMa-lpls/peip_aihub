@@ -68,6 +68,7 @@ APCAlgorithm.control(features) -> APCResult
 - `input_model`
 - `output_model`
 - `tags`
+- `class_path`
 
 示例：
 

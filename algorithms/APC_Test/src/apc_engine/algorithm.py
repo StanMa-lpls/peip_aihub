@@ -39,6 +39,7 @@ class APCAlgorithmMetadata:
     input_model: str = "apc_engine.APCInput"
     output_model: str = "apc_engine.APCResult"
     tags: tuple[str, ...] = ("apc", "r2r")
+    class_path: str = "apc_engine.APCEngineController"
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any] | None = None) -> "APCAlgorithmMetadata":
@@ -67,6 +68,7 @@ class APCAlgorithmMetadata:
             input_model=str(payload.get("input_model", "apc_engine.APCInput")),
             output_model=str(payload.get("output_model", "apc_engine.APCResult")),
             tags=tuple(str(item) for item in payload.get("tags", ("apc", "r2r"))),
+            class_path=str(payload.get("class_path", "apc_engine.APCEngineController")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,6 +83,7 @@ class APCAlgorithmMetadata:
             "input_model": self.input_model,
             "output_model": self.output_model,
             "tags": list(self.tags),
+            "class_path": self.class_path,
         }
 
 

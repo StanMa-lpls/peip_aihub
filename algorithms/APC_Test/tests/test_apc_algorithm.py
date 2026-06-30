@@ -36,6 +36,7 @@ def test_algorithm_adjust_uses_metadata_identity() -> None:
     assert response["adjustments"]["temperature"]
     assert response["blocked_by_actuator"] == {}
     assert algorithm.metadata.to_dict()["input_model"] == "apc_engine.APCInput"
+    assert algorithm.metadata.to_dict()["class_path"] == "apc_engine.APCEngineController"
 
 
 def test_algorithm_accepts_apc_input_without_dict_roundtrip() -> None:
@@ -84,3 +85,4 @@ def test_public_factory_surface_for_peip() -> None:
 
     assert algorithm.algorithm_id == "apc.test.r2r_controller"
     assert metadata["input_model"] == "apc_engine.APCInput"
+    assert metadata["class_path"] == "apc_engine.APCEngineController"

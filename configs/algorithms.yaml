@@ -8,3 +8,26 @@ algorithms:
     call:
       mode: method
       method: adjust
+
+  oee.temperature_detector:
+    package: oee-engine
+    class_path: oee_engine.create_algorithm
+    metadata:
+      algorithm_id: oee.temperature_detector
+      capabilities:
+        - process_data
+        - detect
+
+  oee.pressure_detector:
+    package: oee-engine
+    class_path: oee_engine.create_algorithm
+    metadata:
+      algorithm_id: oee.pressure_detector
+      capabilities:
+        - process_data
+        - detect
+    constructor:
+      kwargs:
+        params:
+          score_threshold: 0.01
+          max_events: 1
