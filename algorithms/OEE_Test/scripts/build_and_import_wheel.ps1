@@ -40,7 +40,7 @@ Write-Host "  $TargetWheel"
 
 if (-not $NoInstall) {
     Write-Host "Installing wheel into current Python environment..."
-    & $Python -m pip install --force-reinstall $TargetWheel
+    & $Python -m pip install --force-reinstall --find-links $WheelDir $TargetWheel
 } else {
     Write-Host "Skipping wheel installation because -NoInstall was provided."
 }

@@ -71,13 +71,37 @@ def _endpoint(algorithm_id: str, input_model: Any):
         try:
             result = registry.invoke(algorithm_id, payload)
         except AlgorithmNotFoundError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Algorithm not found",
+                    "data": {"error": str(exc)},
+                },
+            ) from exc
         except (AlgorithmConfigError, AlgorithmLoadError) as exc:
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Algorithm unavailable",
+                    "data": {"error": str(exc)},
+                },
+            ) from exc
         except AlgorithmInvocationError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Algorithm invocation failed",
+                    "data": {"error": str(exc)},
+                },
+            ) from exc
         except Exception as exc:  # pragma: no cover - wheel-specific errors vary
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Algorithm execution failed",
+                    "data": {"error": f"{type(exc).__name__}: {exc}"},
+                },
+            ) from exc
         return await response.success(data=result)
 
     invoke_typed_algorithm.__signature__ = Signature(  # type: ignore[attr-defined]
@@ -103,9 +127,9 @@ def _endpoint(algorithm_id: str, input_model: Any):
 def _response_model(name: str, output_model: Any) -> type[BaseModel]:
     return create_model(
         f"{name}Response",
-        code=(int, Field(default=0, description="业务状态码，0 表示成功")),
-        message=(str, Field(default="success", description="响应消息")),
-        data=(output_model, Field(default=None, description="算法输出")),
+        code=(int, Field(default=200, description="HTTP-style status code")),
+        message=(str, Field(default="success", description="Response message")),
+        data=(output_model, Field(default=None, description="Algorithm output")),
     )
 
 

@@ -22,10 +22,9 @@ class APCEngineController:
 
     def process_data(self, apc_input: APCInput | None = None) -> dict[str, Any]:
         """Convert APCInput into internal pseudo features."""
-        apc_input = apc_input or APCInput()
-        if not apc_input.is_valid() or not apc_input.p_data:
+        if apc_input is None:
             return {}
-
+        
         process = apc_input.process.strip().upper()
         return {
             "target_p": apc_input.target_p,

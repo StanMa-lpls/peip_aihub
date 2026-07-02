@@ -9,6 +9,7 @@ description = "OEE_Test aggregate sensor-analysis wheel for pressure and tempera
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2",
+    "peip-algorithms-core>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -25,4 +26,4 @@ include = ["oee_engine*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "../algorithms/src"]

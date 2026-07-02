@@ -1,10 +1,20 @@
 # APC_Test
 
-`APC_Test` 是用于验证 `peip_aihub` 算法接入方式的示例 APC wheel。它不实现真实 APC 算法，`APCEngineController` 内部只保留伪逻辑；目标是演示算法包如何提供统一算法服务、metadata、capabilities、输入输出模型和 factory。
+`APC_Test` 是用于验证 `peip_aihub` 算法接入方式的示例 APC wheel。它不实现真实 APC 算法，`APCEngineController` 内部只保留伪逻辑；目标是演示算法包如何基于 `peip-algorithms-core` 提供统一算法服务、metadata、capabilities、输入输出模型和 factory。
+
+## 依赖关系
+
+`APC_Test` 依赖统一算法核心包 `peip-algorithms-core`（导入路径 `algorithms.core`），复用其中的：
+
+- `BaseAlgorithmMetadata`：metadata 字段契约与序列化
+- `BaseControlAlgorithm`：控制类算法 wrapper 基类与 capability 校验
+- `to_jsonable()`：响应序列化
+
+核心包源码位于 `algorithms/algorithms/`，详细设计见 [algorithms/algorithms/README.md](../algorithms/README.md)。
 
 ## 当前设计
 
-`APC_Test` 提供一个统一 APC 算法服务类：`APCAlgorithm`。
+`APC_Test` 提供一个统一 APC 算法服务类：`APCAlgorithm`（继承 `BaseControlAlgorithm`）。
 
 它不再按工序拆分为多个算法，也不再在 metadata 中保存固定 `process`。具体工序由请求体中的 `APCInput.process` 决定。
 
@@ -14,6 +24,7 @@
 - `apc_engine.APCResult`
 - `apc_engine.APCEngineController`
 - `apc_engine.APCAlgorithm`
+- `apc_engine.APCAlgorithmMetadata`
 - `apc_engine.create_algorithm(config)`
 - `apc_engine.get_algorithm_metadata(config)`
 
@@ -24,6 +35,12 @@
 - 合并 metadata
 - 根据 `api_path + call` 决定是否开放 HTTP API
 - 在 workflow 中按 `capabilities` 调用算法能力
+
+## Algorithm ID
+
+wheel 内默认 `algorithm_id` 为 `apc.test.r2r_controller`，用于标识测试算法本身。
+
+`peip_aihub` 注册时可通过 `metadata.algorithm_id` 覆盖为业务 ID，例如 `apc.r2r_controller`。wrapper 返回结果中的 `algorithm_id` 会与注册后的 metadata 保持一致。
 
 ## 能力边界
 
@@ -49,8 +66,10 @@ peip config -> apc_engine.create_algorithm(config)
 APCAlgorithm.process_data(payload) -> features
 APCAlgorithm.control(features) -> APCResult
 
-"adjust" is a pipeline based "process_data" + "control"
+"adjust" is a pipeline based on "process_data" + "control"
 ```
+
+`APCAlgorithm` 在构造时会调用 `validate_capabilities()`，确保 metadata 中声明的每个 capability 都有真实实现。
 
 ## Metadata
 
@@ -75,10 +94,13 @@ APCAlgorithm.control(features) -> APCResult
 ```python
 from apc_engine import get_algorithm_metadata
 
+# wheel 默认 ID
 metadata = get_algorithm_metadata({
-    "algorithm_id": "apc.r2r_controller",
+    "algorithm_id": "apc.test.r2r_controller",
 })
 ```
+
+`to_dict()` 使用 Pydantic `model_dump(mode="json")`，因此 `capabilities`、`tags` 等 tuple 字段会输出为 list。
 
 ## 输入输出模型
 
@@ -88,15 +110,15 @@ metadata = get_algorithm_metadata({
 
 关键字段：
 
-- `machine_id`
+- `machine_id`：仅接受 `M01`、`M02`、`M03`
 - `tube_id`
-- `target_p`
+- `target_p`：必须大于 0
 - `p_data`
 - `adj_data`
-- `adjust_max_limit`
-- `process`
+- `adjust_max_limit`：取值范围 `(1, 3)`，默认 `2`
+- `process`：仅接受 `RB` 或 `LP`
 
-其中 `process` 表示本次 APC 请求的工艺类型，例如 `RB` 和 `LP`。
+其中 `process` 表示本次 APC 请求的工艺类型。当 `process=LP` 时，伪控制器会额外输出 `flow` 调整量。
 
 ## peip_aihub 配置示例
 
@@ -141,7 +163,7 @@ from apc_engine import create_algorithm
 
 algorithm = create_algorithm({
     "metadata": {
-        "algorithm_id": "apc.r2r_controller",
+        "algorithm_id": "apc.test.r2r_controller",
     }
 })
 
@@ -169,37 +191,52 @@ response = algorithm.to_response(result)
   "warning": false,
   "blocked_zones": [],
   "blocked_by_actuator": {},
-  "algorithm_id": "apc.r2r_controller"
+  "algorithm_id": "apc.test.r2r_controller"
 }
 ```
 
 ## Workflow 调用 Demo
 
-不通过 HTTP API 时，可以在 workflow 获取算法实例并按 capability 调用：
+不通过 HTTP API 时，可以在 workflow 中通过 `peip_aihub` 提供的 helper 按 capability 调用：
 
 ```python
-from app.algorithms.handle import to_jsonable
-from app.algorithms.service import get_algorithm_registry
+from app.algorithms.service import call_algorithm_capability
 
+payload = {
+    "machine_id": "M01",
+    "tube_id": "T01",
+    "target_p": 100.0,
+    "p_data": {"p1_mean": [96.0, 97.0, 98.0]},
+    "adj_data": {},
+    "adjust_max_limit": 2,
+    "process": "RB",
+}
 
-def call_algorithm_capability(algorithm_id: str, capability: str, payload: dict) -> dict:
-    registry = get_algorithm_registry()
-    handle = registry.require(algorithm_id)
+result = call_algorithm_capability("apc.r2r_controller", "adjust", payload)
+```
 
-    capabilities = set(handle.spec.metadata.get("capabilities", []))
-    if capability not in capabilities:
-        raise ValueError(f"{algorithm_id} does not support capability: {capability}")
+也可以分步调用：
 
-    method = getattr(handle.instance, capability, None)
-    if not callable(method):
-        raise ValueError(f"{algorithm_id} capability is not callable: {capability}")
-
-    return to_jsonable(method(payload))
+```python
+features = call_algorithm_capability("apc.r2r_controller", "process_data", payload)
+result = call_algorithm_capability("apc.r2r_controller", "control", features)
 ```
 
 ## Wheel 打包和安装
 
-在 `APC_Test` 项目根目录执行：
+`APC_Test` 依赖 `peip-algorithms-core`，建议优先使用仓库根目录下的批量脚本，它会先构建核心包，再构建业务算法包：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "D:\lpls_wspace\peip_aihub\algorithms\build_and_install_wheels.ps1"
+```
+
+指定 Python 环境：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "D:\lpls_wspace\peip_aihub\algorithms\build_and_install_wheels.ps1" -Python "C:\tools\miniconda3\envs\peip_aihub\python.exe"
+```
+
+仅构建 `APC_Test` 时，在 `APC_Test` 项目根目录执行：
 
 ```powershell
 cd D:\lpls_wspace\peip_aihub\algorithms\APC_Test
@@ -214,17 +251,13 @@ dist/
   apc_engine-0.1.0-py3-none-any.whl
 ```
 
-也可以使用一键脚本构建、复制到 `peip_aihub/wheels` 并安装到当前 Python 环境：
+也可以使用单包脚本构建、复制到 `peip_aihub/wheels` 并安装到当前 Python 环境：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "D:\lpls_wspace\peip_aihub\algorithms\APC_Test\scripts\build_and_import_wheel.ps1"
 ```
 
-如果 `peip_aihub` 运行在指定 conda 环境，需要确保脚本使用该环境的 Python，例如：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "D:\lpls_wspace\peip_aihub\algorithms\APC_Test\scripts\build_and_import_wheel.ps1" -Python "C:\tools\miniconda3\envs\peip_aihub\python.exe"
-```
+单包脚本不会自动安装 `peip-algorithms-core`；若环境中尚未安装核心包，请先执行批量脚本，或手动从 `wheels/` 安装 `peip_algorithms_core-0.1.0-py3-none-any.whl`。
 
 ## Entry Point
 
@@ -242,7 +275,7 @@ apc_engine = "apc_engine.factory:create_algorithm"
 安装后验证包是否可导入：
 
 ```powershell
-python -c "from apc_engine import create_algorithm, get_algorithm_metadata; print(get_algorithm_metadata({'algorithm_id': 'apc.r2r_controller'})); print(create_algorithm({'metadata': {'algorithm_id': 'apc.r2r_controller'}}).metadata.to_dict())"
+python -c "from apc_engine import create_algorithm, get_algorithm_metadata; print(get_algorithm_metadata({'algorithm_id': 'apc.test.r2r_controller'})); print(create_algorithm({'metadata': {'algorithm_id': 'apc.test.r2r_controller'}}).metadata.to_dict())"
 ```
 
 运行包内烟测：

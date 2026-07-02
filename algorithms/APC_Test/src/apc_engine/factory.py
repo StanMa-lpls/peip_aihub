@@ -16,4 +16,5 @@ def create_algorithm(config: Mapping[str, Any] | None = None) -> APCAlgorithm:
 
 def get_algorithm_metadata(config: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Return metadata without constructing or invoking the controller."""
-    return APCAlgorithmMetadata.from_dict(config).to_dict()
+    config = dict(config or {})
+    return APCAlgorithmMetadata.from_dict(config.get("metadata") or config).to_dict()

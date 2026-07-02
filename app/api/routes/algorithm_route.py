@@ -37,5 +37,11 @@ async def get_algorithm_metadata_api(
     try:
         data = get_algorithm_metadata(registry, algorithm_id)
     except AlgorithmNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Algorithm not found",
+                "data": {"error": str(exc)},
+            },
+        ) from exc
     return await response.success(data=data)

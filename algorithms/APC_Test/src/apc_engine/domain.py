@@ -6,6 +6,7 @@ reuse them directly instead of redefining shadow APCInput/APCResult classes.
 
 from __future__ import annotations
 
+from platform import mac_ver
 from typing import Any, Mapping
 
 from pydantic import BaseModel, Field, field_validator
@@ -15,17 +16,15 @@ class APCInput(BaseModel):
     """One Run-to-Run APC adjustment request."""
 
     machine_id: str = Field(
-        default="",
         description="机台编号，用于定位 APC 模型与工艺数据来源。",
         examples=["M01"],
+        
     )
     tube_id: str = Field(
-        default="",
         description="管号/炉管编号，用于区分同一机台下的不同工艺腔体。",
         examples=["T01"],
     )
     target_p: float = Field(
-        default=0.0,
         description="目标方阻或目标工艺指标，必须大于 0 才视为有效 APC 请求。",
         examples=[100.0],
     )
@@ -42,6 +41,8 @@ class APCInput(BaseModel):
     adjust_max_limit: int = Field(
         default=2,
         description="单次调整最大限幅。",
+        lt=3,
+        gt=1,
         examples=[2],
     )
     process: str = Field(
@@ -50,10 +51,14 @@ class APCInput(BaseModel):
         examples=["RB"],
     )
 
-    @field_validator("process", mode="before")
+    @field_validator("machine_id", mode="before")
     @classmethod
-    def normalize_process(cls, value: Any) -> str:
-        return str(value or "RB").upper()
+    def validate_machine_id(cls, value: Any) -> str:
+        machine_id = str(value or "").strip().upper()
+        if machine_id not in ["M01", "M02", "M03"]:
+            raise ValueError("invalid APC input: machine_id must be M01, M02 or M03")
+        return machine_id
+
 
     @classmethod
     def from_payload(
@@ -86,14 +91,14 @@ class APCInput(BaseModel):
     def to_dict(self) -> dict[str, Any]:
         return self.model_dump()
 
-    def is_valid(self) -> bool:
-        return bool(self.machine_id.strip()) and bool(self.tube_id.strip()) and self.target_p > 0
-
     def validate_apc_request(self) -> None:
-        if not self.is_valid():
-            raise ValueError("invalid APC input: machine_id, tube_id and positive target_p are required")
-        if not isinstance(self.p_data, dict) or not self.p_data:
-            raise ValueError("invalid APC input: p_data must be a non-empty object")
+        if (
+            not self.machine_id.strip()
+            or not self.tube_id.strip()
+            or self.target_p <= 0
+            or self.process not in ["RB", "LP"]
+        ):
+            raise ValueError("invalid APC input: machine_id, tube_id, positive target_p and process RB/LP are required")
 
 
 class APCResult(BaseModel):

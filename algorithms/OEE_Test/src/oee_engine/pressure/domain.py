@@ -6,10 +6,10 @@ from typing import Any, Mapping
 
 from pydantic import Field
 
-from oee_engine.common import BaseSensorEvent, BaseSensorInput
+from oee_engine.common import BaseOeeInput, BaseOeeOutput
 
 
-class PressureInput(BaseSensorInput):
+class PressureInput(BaseOeeInput):
     """One pressure anomaly detection request."""
 
     params: dict[str, Any] = Field(
@@ -28,7 +28,7 @@ class PressureInput(BaseSensorInput):
         return super().from_payload(payload)
 
 
-class PressureEvent(BaseSensorEvent):
+class PressureEvent(BaseOeeOutput):
     """One pressure anomaly event."""
 
     @classmethod

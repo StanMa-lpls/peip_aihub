@@ -164,5 +164,46 @@ class LLMSettings:
             raise ValueError(f"Missing LLM settings: {', '.join(missing)}")
 
 
+@dataclass(frozen=True, slots=True)
+class OllamaSettings:
+    """Local Ollama runtime settings."""
+
+    base_url: str = ""
+    model: str = ""
+    timeout_seconds: float = 120.0
+
+    @classmethod
+    def from_env(cls, env_file: str | Path | None = None) -> "OllamaSettings":
+        values = load_env_file(env_file)
+
+        def _get(name: str, default: str) -> str:
+            return os.environ.get(name) or values.get(name, default)
+
+        timeout_raw = _get("OLLAMA_TIMEOUT_SECONDS", "120")
+        try:
+            timeout_seconds = float(timeout_raw)
+        except ValueError:
+            timeout_seconds = 120.0
+
+        return cls(
+            base_url=_get("OLLAMA_BASE_URL", cls.base_url).rstrip("/"),
+            model=_get("OLLAMA_MODEL", cls.model),
+            timeout_seconds=timeout_seconds,
+        )
+
+    def validate(self) -> None:
+        missing = [
+            name
+            for name, value in {
+                "OLLAMA_BASE_URL": self.base_url,
+                "OLLAMA_MODEL": self.model,
+            }.items()
+            if not value
+        ]
+        if missing:
+            raise ValueError(f"Missing Ollama settings: {', '.join(missing)}")
+
+
 settings = Settings.from_env()
 llm_settings = LLMSettings.from_env()
+ollama_settings = OllamaSettings.from_env()

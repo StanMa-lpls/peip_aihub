@@ -9,6 +9,7 @@ description = "APC test wheel with metadata-aware algorithm wrapper and pseudo c
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2",
+    "peip-algorithms-core>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -25,4 +26,4 @@ include = ["apc_engine*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "../algorithms/src"]

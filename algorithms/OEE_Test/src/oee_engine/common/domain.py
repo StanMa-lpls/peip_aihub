@@ -1,4 +1,4 @@
-"""Shared input/output helpers for OEE_Test sub-algorithms."""
+"""Shared domain helpers for OEE_Test sub-algorithms."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ from typing import Any, Mapping, TypeVar
 
 from pydantic import BaseModel, Field, field_validator
 
-SensorInputT = TypeVar("SensorInputT", bound="BaseSensorInput")
+OeeInputT = TypeVar("OeeInputT", bound="BaseOeeInput")
 
 
-class BaseSensorInput(BaseModel):
-    """Common sensor-analysis request shape for capability payloads."""
+class BaseOeeInput(BaseModel):
+    """Common OEE request shape for capability payloads."""
 
     alarm_index: str = Field(default="", description="报警点位或事件 ID。")
     alarm_reason: str = Field(default="", description="报警上下文或原因描述。")
@@ -36,19 +36,19 @@ class BaseSensorInput(BaseModel):
         return values
 
     @classmethod
-    def from_payload(cls: type[SensorInputT], payload: Mapping[str, Any] | SensorInputT | None = None) -> SensorInputT:
+    def from_payload(cls: type[OeeInputT], payload: Mapping[str, Any] | OeeInputT | None = None) -> OeeInputT:
         if isinstance(payload, cls):
-            sensor_input = payload
+            oee_input = payload
         else:
             body = dict(payload or {})
             body.pop("algorithm_id", None)
-            sensor_input = cls.from_dict(body)
+            oee_input = cls.from_dict(body)
 
-        sensor_input.validate_sensor_request()
-        return sensor_input
+        oee_input.validate_sensor_request()
+        return oee_input
 
     @classmethod
-    def from_dict(cls: type[SensorInputT], payload: Mapping[str, Any] | None = None) -> SensorInputT:
+    def from_dict(cls: type[OeeInputT], payload: Mapping[str, Any] | None = None) -> OeeInputT:
         payload = payload or {}
         sensors = payload.get("sensors", [])
         timestamps = payload.get("timestamps", [])
@@ -74,11 +74,11 @@ class BaseSensorInput(BaseModel):
 
     def validate_sensor_request(self) -> None:
         if not self.is_valid():
-            raise ValueError("invalid OEE sensor input: sensors or values are required")
+            raise ValueError("invalid OEE input: sensors or values are required")
 
 
-class BaseSensorEvent(BaseModel):
-    """Common OEE sensor anomaly event."""
+class BaseOeeOutput(BaseModel):
+    """Common OEE algorithm output event."""
 
     name: str = Field(default="", description="异常传感器名称。")
     coordinate: str = Field(default="", description="异常位置或坐标。")
@@ -107,32 +107,14 @@ class BaseSensorEvent(BaseModel):
         return self.model_dump()
 
 
-def coerce_sensors(sensor_input: BaseSensorInput, *, default_name: str) -> list[dict[str, Any]]:
-    if sensor_input.sensors:
-        return [dict(sensor) for sensor in sensor_input.sensors]
+def coerce_sensors(oee_input: BaseOeeInput, *, default_name: str) -> list[dict[str, Any]]:
+    if oee_input.sensors:
+        return [dict(sensor) for sensor in oee_input.sensors]
     return [
         {
-            "name": sensor_input.sensor_name or default_name,
-            "coordinate": sensor_input.coordinate,
-            "timestamps": list(sensor_input.timestamps),
-            "values": list(sensor_input.values),
+            "name": oee_input.sensor_name or default_name,
+            "coordinate": oee_input.coordinate,
+            "timestamps": list(oee_input.timestamps),
+            "values": list(oee_input.values),
         }
     ]
-
-
-def to_jsonable(value: Any) -> Any:
-    """Convert detector return values into JSON-friendly structures."""
-
-    if hasattr(value, "to_dict") and callable(value.to_dict):
-        return to_jsonable(value.to_dict())
-    if hasattr(value, "model_dump") and callable(value.model_dump):
-        return to_jsonable(value.model_dump())
-    if hasattr(value, "__dict__") and not isinstance(value, type):
-        return to_jsonable(vars(value))
-    if isinstance(value, Mapping):
-        return {str(key): to_jsonable(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
-        return [to_jsonable(item) for item in value]
-    if isinstance(value, str | int | float | bool) or value is None:
-        return value
-    return str(value)

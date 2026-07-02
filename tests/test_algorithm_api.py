@@ -33,7 +33,7 @@ def test_list_algorithms_route() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["code"] == 0
+    assert body["code"] == 200
     assert body["data"][0]["algorithm_id"] == "apc.fake"
     assert body["data"][0]["package"] == "fake-apc"
 
@@ -67,8 +67,32 @@ def test_dynamic_algorithm_route_uses_configured_io_models() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["code"] == 0
+    assert body["code"] == 200
     assert body["data"] == {"adjustments": {"rb": [1.0, 0.0]}}
+
+
+def test_validation_error_hides_input_and_returns_messages() -> None:
+    registry = _fake_registry()
+    app = create_app()
+    app.dependency_overrides[get_algorithm_registry] = lambda: registry
+    app.include_router(create_algorithm_api_router(registry), prefix="/api/v1")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/algorithms/apc/fake",
+        json={"process": "RB"},
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert set(body) == {"code", "message", "data"}
+    assert body["code"] == 422
+    assert body["message"] == "Request validation failed"
+    assert body["data"]["messages"] == ["Missing required field: machine_id"]
+    assert body["data"]["errors"] == [
+        {"type": "missing", "loc": ["body", "machine_id"], "msg": "Field required"},
+    ]
+    assert "input" not in str(body)
 
 
 def test_dynamic_algorithm_route_openapi_uses_clean_summary() -> None:

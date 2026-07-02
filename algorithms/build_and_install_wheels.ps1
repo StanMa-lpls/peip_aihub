@@ -1,3 +1,6 @@
+#! /usr/bin/env pwsh
+#! powershell -ExecutionPolicy Bypass -File "D:\lpls_wspace\peip_aihub\algorithms\build_and_install_wheels.ps1" -Python "C:\tools\miniconda3\envs\peip_aihub\python.exe"
+
 param(
     [string]$CondaEnv = "peip_aihub",
     [string]$Python = "",
@@ -40,6 +43,7 @@ function Get-ProjectRoots {
 
     Get-ChildItem -Path $AlgorithmsRoot -Directory |
         Where-Object { Test-Path (Join-Path $_.FullName "pyproject.toml") } |
+        Sort-Object @{ Expression = { if ($_.Name -eq "algorithms") { 0 } else { 1 } } }, Name |
         ForEach-Object { $_.FullName }
 }
 
@@ -56,6 +60,11 @@ function Remove-BuildArtifacts {
 }
 
 New-Item -ItemType Directory -Force $WheelDir | Out-Null
+$ExistingWheels = Get-ChildItem -Path $WheelDir -Filter "*.whl" -File -ErrorAction SilentlyContinue
+if ($ExistingWheels.Count -gt 0) {
+    Write-Host "Removing existing wheels from: $WheelDir"
+    $ExistingWheels | Remove-Item -Force
+}
 
 Write-Host "Algorithms root: $AlgorithmsRoot"
 Write-Host "peip_aihub root:  $PeipRoot"
@@ -97,11 +106,6 @@ foreach ($ProjectRoot in Get-ProjectRoots) {
 
     Write-Host "Wheel copied:"
     Write-Host "  $TargetWheel"
-
-    if (-not $NoInstall) {
-        Write-Host "Installing wheel..."
-        Invoke-TargetPython -m pip install --force-reinstall $TargetWheel
-    }
 }
 
 Write-Host ""
@@ -110,6 +114,10 @@ foreach ($Wheel in $BuiltWheels) {
     Write-Host "  $Wheel"
 }
 
-if ($NoInstall) {
+if (-not $NoInstall) {
+    Write-Host ""
+    Write-Host "Installing completed wheels..."
+    Invoke-TargetPython -m pip install --force-reinstall --find-links $WheelDir @BuiltWheels
+} else {
     Write-Host "Wheel installation skipped because -NoInstall was provided."
 }

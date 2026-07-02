@@ -7,47 +7,26 @@ from typing import Any, Mapping
 
 from oee_engine.common import coerce_sensors, first_mean, first_timestamp, max_range, numeric_values
 from oee_engine.temperature.domain import TemperatureEvent, TemperatureInput
+from oee_engine.temperature.metadata import TemperatureAlgorithmMetadata
 
 
 class TemperatureController:
     """Independent temperature algorithm with process_data + detect capabilities."""
 
-    DEFAULT_ALGORITHM_ID = "oee.temperature_detector"
-    family = "oee"
-    version = "0.1.0"
-    provider = "oee_engine"
     sensor_type = "temperature"
-    description = "OEE_Test 温度曲线伪异常检测器"
-    when_to_use = "当报警上下文包含温区温度、设定值或温度时序曲线时，用于温度异常检测。"
-    capabilities = ("process_data", "detect")
-    tags = ("oee", "sensor_analysis", "temperature")
-    input_model = "oee_engine.temperature.TemperatureInput"
-    output_model = "oee_engine.temperature.TemperatureEvent"
-    class_path = "oee_engine.temperature.TemperatureController"
 
     def __init__(self, params: Mapping[str, Any] | None = None) -> None:
+        self._metadata = TemperatureAlgorithmMetadata()
         self.params = dict(params or {})
         self.data_mat: dict[str, Any] | None = None
 
     @property
     def algorithm_id(self) -> str:
-        return self.DEFAULT_ALGORITHM_ID
+        return self._metadata.algorithm_id
 
-    @classmethod
-    def metadata_defaults(cls) -> dict[str, Any]:
-        return {
-            "algorithm_id": cls.DEFAULT_ALGORITHM_ID,
-            "family": cls.family,
-            "version": cls.version,
-            "provider": cls.provider,
-            "description": cls.description,
-            "when_to_use": cls.when_to_use,
-            "capabilities": list(cls.capabilities),
-            "tags": list(cls.tags),
-            "input_model": cls.input_model,
-            "output_model": cls.output_model,
-            "class_path": cls.class_path,
-        }
+    @property
+    def metadata(self) -> TemperatureAlgorithmMetadata:
+        return self._metadata
 
     def process_data(self, payload: Mapping[str, Any] | TemperatureInput | None = None) -> dict[str, Any]:
         temperature_input = TemperatureInput.from_payload(payload)
